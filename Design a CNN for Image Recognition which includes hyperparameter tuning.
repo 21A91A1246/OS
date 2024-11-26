@@ -1,0 +1,37 @@
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.datasets import cifar10
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.callbacks import LearningRateScheduler
+# Load and preprocess the CIFAR-10 dataset
+(train_images, train_labels), (test_images, test_labels) = cifar10.load_data()
+train_images, test_images = train_images / 255.0, test_images / 255.0
+# Split data into training and validation sets
+train_images, val_images, train_labels, val_labels = train_test_split(train_images, train_labels,
+test_size=0.1, random_state=42)
+# Define a CNN architecture
+model = models.Sequential()
+model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+model.add(layers.Flatten())
+model.add(layers.Dense(64, activation='relu'))
+model.add(layers.Dense(10, activation='softmax'))
+# Define a learning rate schedule
+def lr_schedule(epoch):
+  initial_lr = 0.001
+  if epoch >= 40:
+    return initial_lr * 0.1
+  return initial_lr
+# Compile the model
+model.compile(optimizer='adam',loss='sparse_categorical_crossentropy',metrics=['accuracy'])
+# Create data augmentation generator
+datagen=ImageDataGenerator(rotation_range=15,width_shift_range=0.1,height_shift_range=0.1,horizontal_flip=True,fill_mode='nearest')
+# Train the model with data augmentation and learning rate schedule
+history=model.fit(datagen.flow(train_images,train_labels,batch_size=64),epochs=2,steps_per_epoch=len(train_images)//64,validation_data=(val_images,val_labels),callbacks=[LearningRateScheduler(lr_schedule)])
+# Evaluate the model on the test set
+test_loss, test_acc = model.evaluate(test_images, test_labels)
+print('Test accuracy:', test_acc)
